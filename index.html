@@ -75,8 +75,8 @@ label{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--mut)
 @media(max-width:860px){
 .app{display:block}
 .nav{position:fixed;left:0;right:0;bottom:0;top:auto;height:auto;flex-direction:row;justify-content:space-around;padding:8px 12px calc(8px + env(safe-area-inset-bottom,0px));border:0;border-top:1px solid var(--line);z-index:40}
-.brand{display:none}.nav button{flex-direction:column;gap:2px;font-size:11px;padding:8px 14px;flex:1}
-.nav button[data-go="scanner"]{background:var(--pri);color:var(--onpri);margin-top:-22px;border-radius:20px;box-shadow:0 6px 18px #0A7C7A66}
+.brand{display:none}.nav{gap:2px;padding-left:6px;padding-right:6px}.nav button{flex-direction:column;gap:2px;font-size:10.5px;padding:8px 2px;flex:1;min-width:0;border-radius:14px}
+.nav button[data-nav="sekolah"]{order:1}.nav button[data-nav="siswa"]{order:2}.nav button[data-go="beranda"]{order:3}.nav button[data-nav="mapel"]{order:4}.nav button[data-go="scanner"]{order:5}
 main{padding:20px 16px 130px}.stats{grid-template-columns:1fr 1fr}.hero{flex-direction:column;align-items:flex-start}.hero svg{width:60%}.scan{grid-template-columns:1fr}}
 @media print{:root{padding:0}@page{margin:0;size:A4}.app,.noprint,.toast{display:none!important}#sheet{position:static;padding:0}#sheet svg{width:210mm;height:297mm;box-shadow:none}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
@@ -95,7 +95,9 @@ details.acc>summary>.stt{flex:1;min-width:0}.sub2{color:var(--mut);font-size:13p
 <div class="brand"><i></i>LJK Scan</div>
 <button data-go="beranda"><svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Beranda</button>
 <button data-go="scanner"><svg viewBox="0 0 24 24"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M4 12h16"/></svg>Scanner</button>
-<button data-go="pengaturan"><svg viewBox="0 0 24 24"><path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/></svg>Pengaturan</button>
+<button data-nav="mapel"><svg viewBox="0 0 24 24"><path d="M5 4h10a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3zM5 17a3 3 0 0 1 3-3h10"/></svg>Mapel</button>
+<button data-nav="sekolah"><svg viewBox="0 0 24 24"><path d="M3 10l9-6 9 6M5 10v9h14v-9M9 19v-5h6v5M12 4v-1"/></svg>Sekolah</button>
+<button data-nav="siswa"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3 20a6 6 0 0 1 12 0M16 5a3.2 3.2 0 0 1 0 6M18 14a6 6 0 0 1 3 6"/></svg>Siswa</button>
 </nav>
 <main>
 <section class="view" id="v-beranda"></section>
@@ -116,8 +118,8 @@ details.acc>summary>.stt{flex:1;min-width:0}.sub2{color:var(--mut);font-size:13p
 <button class="ib" data-act="cam" aria-label="Ambil foto"><svg viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></button></div>
 <input type="file" accept="image/*" capture="environment" id="fc" hidden><input type="file" accept="image/*" id="fu" hidden>
 </section>
-<section class="view" id="v-pengaturan" hidden><h1>Pengaturan</h1><p class="sub">Atur mata pelajaran, kunci jawaban, sekolah, dan siswa.</p>
-<div class="tabs"><button class="tab on" data-tab="mapel">Mapel &amp; soal</button><button class="tab" data-tab="sek">Sekolah &amp; siswa</button></div>
+<section class="view" id="v-pengaturan" hidden><h1 id="ph1">Mapel &amp; soal</h1><p class="sub" id="psub"></p>
+
 <div id="p-mapel"></div><div id="p-sek" hidden></div></section>
 </main></div>
 <div id="dpm" hidden></div><div id="rm" hidden></div>
@@ -132,11 +134,12 @@ const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(D))}catch(e){}};
 const sortS=a=>[...a].sort((x,y)=>(x.kelas||'').localeCompare(y.kelas||'')||(x.no||999)-(y.no||999)||x.nama.localeCompare(y.nama));
 const nextNo=k=>{const u=new Set(D.siswa.filter(s=>(s.kelas||'')===k).map(s=>+s.no));let n=1;while(u.has(n))n++;return n};
 (()=>{const by={};let ch=0;D.siswa.forEach(s=>(by[s.kelas||'']=by[s.kelas||'']||[]).push(s));Object.values(by).forEach(l=>{const u=new Set(l.filter(s=>s.no).map(s=>+s.no));let n=0;l.forEach(s=>{if(!s.no){do n++;while(u.has(n));s.no=n;u.add(n);ch=1}})});if(ch)save()})();
-let tab='mapel',cur=null,S=null,tt,ZM=null;
+let tab='mapel',cur=null,S=null,tt,ZM=null,curV='beranda';
 const arm=(b,t)=>{if(b.dataset.arm)return true;b.dataset.arm=1;const o=b.textContent;b.textContent=t;setTimeout(()=>{delete b.dataset.arm;b.textContent=o},3000);return false};
 function toast(t){const e=document.createElement('div');e.className='toast';e.textContent=t;document.body.append(e);setTimeout(()=>e.remove(),2200)}
 const V=['beranda','scanner','pengaturan'];
-function go(v){if(!V.includes(v))v='beranda';if(v!=='scanner')try{stopLive()}catch(e){}$$('.view').forEach(e=>e.hidden=e.id!=='v-'+v);$$('[data-go]').forEach(b=>b.classList.toggle('on',b.dataset.go===v));if(location.hash!=='#'+v)location.hash=v;scrollTo(0,0);({beranda:rBeranda,scanner:rScan,pengaturan:rSet})[v]()}
+function navOn(){$$('.nav [data-nav]').forEach(b=>{const k=b.dataset.nav;b.classList.toggle('on',curV==='pengaturan'&&(k==='mapel'?tab==='mapel':tab==='sek'&&sekTab===k))})}
+function go(v){if(!V.includes(v))v='beranda';curV=v;if(v!=='scanner')try{stopLive()}catch(e){}$$('.view').forEach(e=>e.hidden=e.id!=='v-'+v);$$('[data-go]').forEach(b=>b.classList.toggle('on',b.dataset.go===v));if(location.hash!=='#'+v)location.hash=v;scrollTo(0,0);({beranda:rBeranda,scanner:rScan,pengaturan:rSet})[v]();navOn()}
 addEventListener('hashchange',()=>go(location.hash.slice(1)));
 /* ===== template LJK (koordinat 700x990, dipakai untuk SVG, PDF, dan pembacaan scan) ===== */
 const PHof=m=>m.kertas==='f4'?1074:990;
@@ -217,7 +220,8 @@ $('#v-beranda').innerHTML=`<div class="hero"><div><h1>Nilai LJK dari satu foto.<
 <div class="stats"><div class="stat"><b>${D.mapel.length}</b><span>Mata pelajaran</span></div><div class="stat"><b>${D.siswa.length}</b><span>Siswa</span></div><div class="stat"><b>${h.length}</b><span>LJK terscan</span></div><div class="stat"><b>${avg}</b><span>Rata-rata nilai</span></div></div>
 <div class="card"><h3>Riwayat penilaian</h3>${rw||'<p class="empty">Belum ada mata pelajaran. Tambahkan di Pengaturan, lalu scan lembar pertama.</p>'}</div>`;}
 /* ===== Pengaturan ===== */
-function rSet(){$$('.tab').forEach(t=>t.classList.toggle('on',t.dataset.tab===tab));$('#p-mapel').hidden=tab!=='mapel';$('#p-sek').hidden=tab!=='sek';tab==='mapel'?rMapel():rSek()}
+const PT={mapel:['Mapel & soal','Atur mata pelajaran, jumlah soal, dan kunci jawaban.'],sekolah:['Data sekolah','Nama sekolah, alamat, logo, dan judul ujian untuk kop LJK.'],siswa:['Siswa','Impor dari Dapodik atau tambah manual, lengkap dengan no. absen dan nama panggilan.']};
+function rSet(){{const t=PT[tab==='mapel'?'mapel':sekTab];$('#ph1').textContent=t[0];$('#psub').textContent=t[1]}$$('.tab').forEach(t=>t.classList.toggle('on',t.dataset.tab===tab));$('#p-mapel').hidden=tab!=='mapel';$('#p-sek').hidden=tab!=='sek';tab==='mapel'?rMapel():rSek();navOn()}
 const norm=m=>{m.dua=Math.max(0,Math.min(20,m.dua|0));m.tiga=Math.max(0,Math.min(10,m.tiga|0));m.k2=Array.from({length:m.dua},(_,i)=>m.k2?.[i]||[]);m.np=Array.from({length:m.tiga},(_,i)=>m.np?.[i]??3);m.k3=Array.from({length:m.tiga},(_,i)=>Array.from({length:3},(_,j)=>j<m.np[i]?(m.k3?.[i]?.[j]??-1):-1));return m};
 D.mapel.forEach(norm);
 const kTot=m=>[m.kunci.filter(k=>k>=0).length+m.k2.filter(k=>k.length).length+m.k3.reduce((q,k,i)=>q+k.slice(0,m.np[i]).filter(v=>v>=0).length,0),m.jumlah+m.dua+m.np.reduce((q,v)=>q+v,0)];
@@ -266,13 +270,13 @@ names.forEach(k=>{const u=new Set();g[k].forEach(s=>{if(s.no&&!u.has(s.no))u.add
 DP={g,names,sel:0,saved:{},tpl:1};dpRender()}catch(e){toast('Format tidak dikenali. Gunakan kolom No, Nama, Kelas (lihat Unduh template).')}}
 const logoBox=(k,l)=>`<div style="flex:1 1 200px"><div style="font-size:13px;color:var(--mut);margin-bottom:6px">${l}</div><div style="display:flex;align-items:center;gap:12px"><div style="width:76px;height:76px;border:1.5px dashed var(--line);border-radius:14px;display:grid;place-items:center;overflow:hidden;background:var(--bg);flex:none">${D.school[k]?`<img src="${D.school[k]}" alt="" style="max-width:100%;max-height:100%">`:'<small style="color:var(--mut)">Belum ada</small>'}</div><div style="display:grid;gap:6px"><button class="btn ghost" data-act="logo" data-id="${k}">${D.school[k]?'Ganti':'Unggah'}</button>${D.school[k]?`<button class="btn ghost danger" data-act="logodel" data-id="${k}">Hapus</button>`:''}</div></div></div>`;
 function loadLogo(k,f){if(!f)return;const im=new Image();im.onload=()=>{const q=Math.min(1,240/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.max(1,Math.round(im.width*q));c.height=Math.max(1,Math.round(im.height*q));c.getContext('2d').drawImage(im,0,0,c.width,c.height);D.school[k]=c.toDataURL('image/png');save();rSek();URL.revokeObjectURL(im.src)};im.onerror=()=>toast('Gambar tidak bisa dibaca');im.src=URL.createObjectURL(f)}
-function rSek(){const pills=`<div class="pills"><button class="pill ${sekTab==='sekolah'?'on':''}" data-act="stab" data-id="sekolah">Sekolah</button><button class="pill ${sekTab==='siswa'?'on':''}" data-act="stab" data-id="siswa">Siswa</button></div>`;
+function rSek(){const pills='';
 const sch=`<div class="card"><h3>Data sekolah</h3><div class="fg">${[['skpd','Nama SKPD'],['nama','Nama sekolah'],['npsn','NPSN'],['alamat','Alamat'],['tahun','Tahun pelajaran'],['judul','Judul ujian']].map(([k,l])=>`<label>${l}<input data-f="${k}" value="${esc(D.school[k])}"></label>`).join('')}</div>
 <h3 style="margin-top:20px">Logo kop LJK</h3><div class="row" style="align-items:flex-start;gap:20px">${logoBox('logoSkpd','Logo SKPD (kiri)')}${logoBox('logoSek','Logo sekolah (kanan)')}</div><input type="file" accept="image/*" id="lgf" hidden></div>`;
 const sis=`<div class="card"><h3>Siswa (${D.siswa.length})</h3><div class="row"><button class="btn" data-act="dapo">Upload data Dapodik (.xlsx)</button><button class="btn ghost" data-act="tpldl">Unduh template</button><button class="btn ghost" data-act="tplup">Import template</button><input type="file" id="dpf" accept=".xlsx,.xls" hidden><input type="file" id="tpf" accept=".xlsx,.xls,.csv" hidden></div><div class="row"><input id="sno" type="number" min="1" max="99" placeholder="No" style="flex:0 0 70px"><input id="sn" placeholder="Nama siswa"><input id="skl" placeholder="Kelas" class="sm"><button class="btn" data-act="adds">Tambah</button></div>
 <details><summary>Tempel banyak siswa sekaligus</summary><textarea id="sbk" rows="5" placeholder="Satu siswa per baris: No, Nama, Kelas (No boleh dikosongkan, otomatis berurutan)"></textarea><button class="btn ghost" data-act="bulk">Impor daftar</button></details>
 ${D.siswa.length?sortS(D.siswa).map(s=>`<div class="li"><div style="display:flex;align-items:center;gap:10px;min-width:0"><input data-sno="${s.id}" type="number" min="1" max="99" value="${s.no||''}" aria-label="No. absen" style="flex:0 0 62px;text-align:center;padding:6px"><span style="flex:1;min-width:0">${esc(s.nama)} <small>Kelas ${esc(s.kelas||'-')}</small></span><input class="pn" data-spd="${s.id}" placeholder="Panggilan" value="${esc(s.pendek||'')}" aria-label="Nama panggilan" autocomplete="off"></div><button class="x" data-act="dels" data-id="${s.id}" aria-label="Hapus">×</button></div>`).join(''):'<p class="empty">Belum ada siswa.</p>'}</div>`;
-$('#p-sek').innerHTML=pills+(sekTab==='sekolah'?sch:sis)}
+$('#p-sek').innerHTML=pills+(sekTab==='sekolah'?sch:sis);navOn()}
 /* ===== Scanner (OpenCV.js + skor langsung) ===== */
 let cvP=null,stream=null,live=false,lastT=0,camOff=false,starting=false;
 function loadCV(){if(cvP)return cvP;cvP=new Promise((res,rej)=>{if(window.cv&&cv.Mat)return res();const sc=document.createElement('script');sc.src='https://cdn.jsdelivr.net/npm/@techstark/opencv-js@4.9.0-release.1/dist/opencv.js';sc.onerror=()=>rej();document.head.append(sc);const t0=Date.now(),iv=setInterval(()=>{if(window.cv&&cv.Mat){clearInterval(iv);res()}else if(Date.now()-t0>120000){clearInterval(iv);rej()}},200)});cvP.catch(()=>{cvP=null;msg('Mesin pemindai gagal dimuat. Periksa koneksi lalu muat ulang halaman.')});return cvP}
@@ -358,7 +362,7 @@ $('#sbox').innerHTML=per===2?`<div class="two">${v}${v}</div>`:v;
 let st=$('#pgstyle');if(!st){st=document.createElement('style');st.id='pgstyle';document.head.append(st)}
 st.textContent=per===2?`@media print{@page{size:${ph}mm ${pw}mm;margin:0}#sheet svg{width:${ph/2}mm!important;height:${pw}mm!important}.two{display:flex;width:${ph}mm;height:${pw}mm}}`:`@media print{@page{size:${pw}mm ${ph}mm;margin:0}#sheet svg{width:${pw}mm!important;height:${ph}mm!important}}`;
 $('#sheet').hidden=false;scrollTo(0,0)}
-document.addEventListener('click',e=>{const gb=e.target.closest('[data-go]');if(gb)return go(gb.dataset.go);const b=e.target.closest('[data-act],[data-tab]');if(!b)return;if(b.dataset.tab){tab=b.dataset.tab;return rSet()}
+document.addEventListener('click',e=>{const nv=e.target.closest('[data-nav]');if(nv){const k=nv.dataset.nav;tab=k==='mapel'?'mapel':'sek';if(k!=='mapel')sekTab=k;else cur=null;return go('pengaturan')}const gb=e.target.closest('[data-go]');if(gb)return go(gb.dataset.go);const b=e.target.closest('[data-act],[data-tab]');if(!b)return;if(b.dataset.tab){tab=b.dataset.tab;return rSet()}
 const a=b.dataset.act,id=b.dataset.id,m=D.mapel.find(x=>x.id===cur);
 if(a==='live'){if(live)stopLive();else{camOff=false;startLive()}}else if(a==='cap'){if(live)capture();else{camOff=false;startLive()}}else if(a==='rmk'||a==='rmf'||a==='rma')rmOpen({rmk:'rk',rmf:'fs',rma:'an'}[a],id);else if(a==='rmclose'){$('#rm').hidden=true;RM=null}else if(a==='rmkel'){RM.kel=id||'';rmRender()}else if(a==='rmfoto'){RM.foto=id;rmRender()}else if(a==='rmback'){RM.foto=null;rmRender()}else if(a==='rmcsv')rmCsv();
 else if(a==='zoom'&&ZM){const L=[...new Set([ZM.min,1,2,ZM.max].filter(v=>v>=ZM.min&&v<=ZM.max).map(v=>Math.round(v*10)/10))].sort((x,y)=>x-y),i=L.findIndex(v=>Math.abs(v-ZM.cur)<.05);setZoom(L[(i+1)%L.length])}else if(a==='adv')$('#adv').hidden=!$('#adv').hidden;else if(a==='dapo')$('#dpf').click();else if(a==='tpldl')tplDownload();else if(a==='tplup')$('#tpf').click();else if(a==='dpsel'){DP.sel=+id;dpRender()}else if(a==='dpsave')dpSave();else if(a==='dpclose'){$('#dpm').hidden=true;DP=null}else if(a==='stab'){sekTab=id;rSek()}else if(a==='logo'){const f=$('#lgf');f.dataset.k=id;f.click()}else if(a==='logodel'){D.school[id]='';save();rSek()}else if(a==='hideout'&&S){S.hid=1;showRes()}else if(a==='showout'&&S){S.hid=0;showRes()}else if(a==='pdf1')openSheet(id,1);else if(a==='pdf2')openSheet(id,2);
