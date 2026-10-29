@@ -148,7 +148,7 @@ main{min-width:0}.card,.rc{min-width:0}.rc>*{min-width:0}
 <div class="stop"><button class="ib" data-go="beranda" aria-label="Kembali"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
 <div class="ttl"><select id="sm" aria-label="Mata pelajaran"></select><small>Kelas: <select id="skel" aria-label="Kelas"></select></small></div>
 <button class="ib" data-act="adv" aria-label="Sensitivitas"><svg viewBox="0 0 24 24"><path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/></svg></button></div>
-<div id="adv" hidden><label>Sensitivitas hitam<input type="range" id="th" min="30" max="70" value="45"></label><label style="flex-direction:row;align-items:center;gap:8px;margin-top:10px"><input type="checkbox" id="auto" checked style="flex:none;width:auto">Auto-tangkap saat terbaca</label></div>
+<div id="adv" hidden><label>Ketebalan tanda minimum<input type="range" id="th" min="30" max="70" value="45"><span style="display:flex;justify-content:space-between;font-size:11px"><span>◀ Peka (tanda tipis)</span><span>Ketat (tebal) ▶</span></span></label><p class="sub" style="font-size:11.5px;margin:6px 0 0">Batas terisi dicari otomatis dari bulatan kosong. Geser hanya jika ada tanda yang terlewat atau bulatan kosong terbaca.</p><label style="flex-direction:row;align-items:center;gap:8px;margin-top:10px"><input type="checkbox" id="auto" checked style="flex:none;width:auto">Auto-tangkap saat terbaca</label></div>
 <div id="sst" class="msg" hidden></div>
 <div id="lv" hidden></div>
 <div class="card" id="out" hidden><div class="row" style="flex-wrap:nowrap;margin-bottom:8px"><div class="score" id="sk"></div><div class="chips" style="flex:1;margin:0"><span id="cb" style="background:#12A15022;color:var(--ok)"></span><span id="cs" style="background:#E5484D22;color:var(--bad)"></span><span id="cx" style="background:#F2B20033"></span></div></div>
@@ -425,14 +425,16 @@ else{const q=[[],[],[],[]];cand.forEach(p=>q[(p[0]>w/2?1:0)+(p[1]>h/2?2:0)].push
 if(pts.some(p=>!p))return null;
 const sm=M(cv.matFromArray(4,1,cv.CV_32FC2,pts.flat())),dm=M(cv.matFromArray(4,1,cv.CV_32FC2,MKm.flat())),T=M(cv.getPerspectiveTransform(sm,dm)),wp=M(new cv.Mat()),wb=M(new cv.Mat());
 cv.warpPerspective(g,wp,T,new cv.Size(700,HH));cv.adaptiveThreshold(wp,wb,255,cv.ADAPTIVE_THRESH_MEAN_C,cv.THRESH_BINARY_INV,41,12);
-const d=wb.data,H=homog(MKm,pts.map(p=>[p[0]+rx,p[1]+ry])),P=[],ans=[];
-for(let n=0;n<m.jumlah;n++){const row=[],mk=[];for(let k=0;k<4;k++){const p=pos(n,k);let dk=0,t=0;
-for(let dy=-6;dy<=6;dy++)for(let dx=-6;dx<=6;dx++){if(dx*dx+dy*dy>36)continue;t++;if(d[(Math.round(p.y)+dy)*700+Math.round(p.x)+dx])dk++}
-row.push(mp(H,p.x,p.y));if(dk/t>=th)mk.push(k)}P.push(row);ans.push(mk)}
-const nid=[0,1].map(r=>{const Q=[],mk=[];for(let k=0;k<10;k++){const p=nidPos(r,k);let dk=0,t=0;for(let dy=-3;dy<=3;dy++)for(let dx=-3;dx<=3;dx++){if(dx*dx+dy*dy>10)continue;t++;if(d[(Math.round(p.y)+dy)*700+Math.round(p.x)+dx])dk++}Q.push(mp(H,p.x,p.y));if(dk/t>=th)mk.push(k)}return{P:Q,mk}});
-const PL=plan(m),sm2=(x,y,r)=>{let dk=0,t=0;for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++){if(dx*dx+dy*dy>r*r)continue;t++;if(d[(Math.round(y)+dy)*700+Math.round(x)+dx])dk++}return dk/t>=th},P2=[],ans2=[],P3=[],ans3=[];
-for(let n=0;n<PL.n2;n++){const row=[],mk=[];for(let k=0;k<4;k++){const p=p2(PL,n,k);row.push(mp(H,p.x,p.y));if(sm2(p.x,p.y,6))mk.push(k)}P2.push(row);ans2.push(mk)}
-for(let n=0;n<PL.n3;n++){const pr=[],ar=[];for(let j=0;j<(m.np?.[n]??3);j++){const r=[],mk=[];for(let k=0;k<2;k++){const p=p3(PL,n,j,k);r.push(mp(H,p.x,p.y));if(sm2(p.x,p.y,4))mk.push(k)}pr.push(r);ar.push(mk)}P3.push(pr);ans3.push(ar)}
+const d=wb.data,H=homog(MKm,pts.map(p=>[p[0]+rx,p[1]+ry])),rt=(x,y,R,L)=>{let dk=0,t=0;for(let dy=-R;dy<=R;dy++)for(let dx=-R;dx<=R;dx++){if(dx*dx+dy*dy>L)continue;t++;if(d[(Math.round(y)+dy)*700+Math.round(x)+dx])dk++}return dk/t},mpp=p=>mp(H,p.x,p.y);
+/* Rasio gelap tiap bulatan dihitung dulu; batas "terisi" dicari otomatis dari bulatan kosong (median) per jenis soal */
+const med=a=>{if(!a.length)return 0;const q=[...a].sort((x,y)=>x-y);return q[q.length>>1]},TH=a=>{const b=med(a);return b<.55?Math.max(b+th*.56,.4):th},mkr=(r,t)=>r.map((v,k)=>v>=t?k:-1).filter(k=>k>=0);
+const rA=[];for(let n=0;n<m.jumlah;n++)rA.push([0,1,2,3].map(k=>{const p=pos(n,k);return rt(p.x,p.y,6,36)}));
+const rN=[0,1].map(r=>Array.from({length:10},(_,k)=>{const p=nidPos(r,k);return rt(p.x,p.y,3,10)}));
+const PL=plan(m),rP2=[],rP3=[];for(let n=0;n<PL.n2;n++)rP2.push([0,1,2,3].map(k=>{const p=p2(PL,n,k);return rt(p.x,p.y,6,36)}));
+for(let n=0;n<PL.n3;n++)rP3.push(Array.from({length:m.np?.[n]??3},(_,j)=>[0,1].map(k=>{const p=p3(PL,n,j,k);return rt(p.x,p.y,4,16)})));
+const tA=TH(rA.flat()),tN=TH(rN.flat()),t2=TH(rP2.flat()),t3=TH(rP3.flat(2));
+const P=rA.map((r,n)=>r.map((_,k)=>mpp(pos(n,k)))),ans=rA.map(r=>mkr(r,tA)),nid=rN.map((r,ri)=>({P:r.map((_,k)=>mpp(nidPos(ri,k))),mk:mkr(r,tN)})),
+P2=rP2.map((r,n)=>r.map((_,k)=>mpp(p2(PL,n,k)))),ans2=rP2.map(r=>mkr(r,t2)),P3=rP3.map((s,n)=>s.map((r,j)=>r.map((_,k)=>mpp(p3(PL,n,j,k))))),ans3=rP3.map(s=>s.map(r=>mkr(r,t3)));
 const o0=mp(H,0,0),o1=mp(H,100,0);return{P,ans,nid,P2,ans2,P3,ans3,sc:Math.hypot(o1[0]-o0[0],o1[1]-o0[1])/100}
 }finally{ms.forEach(x=>x.delete())}}
 function nidNo(res){const[a,b]=res.nid.map(r=>r.mk.length===1?r.mk[0]:r.mk.length?-2:-1);if(a===-1&&b===-1)return null;if(a===-2||b===-2||b===-1)return{err:1};const no=Math.max(a,0)*10+b;return no?{no}:{err:1}}
@@ -451,20 +453,27 @@ function showRes(){if(S.res){grade();msg(S.m.kunci.includes(-1)?'Kunci jawaban b
 function setStatic(b,gd){const m=curM();stopLive();const c=$('#cv');c.width=b.width;c.height=b.height;c.hidden=false;$('#ph').hidden=true;S={m,base:b};S.res=(gd&&analyze(b,m,thr(),gd))||analyze(b,m,thr());showRes()}
 function loadImg(f){if(!f)return;if(!curM())return msg('Tambahkan mata pelajaran dan kunci jawaban di Pengaturan dulu.');
 loadCV().then(()=>{const im=new Image();im.onload=()=>{const k=Math.min(1,1280/Math.max(im.width,im.height)),b=document.createElement('canvas');b.width=Math.round(im.width*k);b.height=Math.round(im.height*k);b.getContext('2d').drawImage(im,0,0,b.width,b.height);setStatic(b)};im.src=URL.createObjectURL(f)},()=>{})}
-async function getCam(){const tries=[{video:{facingMode:{ideal:'environment'},width:{ideal:1280}},audio:false},{video:{facingMode:'environment'},audio:false},{video:true,audio:false}];let err;
+async function getCam(){const tries=[{video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}},audio:false},{video:{facingMode:'environment'},audio:false},{video:true,audio:false}];let err;
 for(const c of tries){try{return await navigator.mediaDevices.getUserMedia(c)}catch(e){err=e;if(e.name==='NotAllowedError'||e.name==='SecurityError')break;await new Promise(r=>setTimeout(r,500))}}throw err}
 async function startLive(){if(live||starting)return;if(!curM())return msg('Tambahkan mata pelajaran dan kunci jawaban di Pengaturan dulu.');
-starting=true;try{if(!navigator.mediaDevices?.getUserMedia)throw{name:'Unsupported'};const[,st]=await Promise.all([loadCV(),getCam()]);stream=st;ZM=null;try{const tr=st.getVideoTracks()[0],cp=tr.getCapabilities?.()||{};if(cp.zoom&&cp.zoom.max>cp.zoom.min){ZM={min:cp.zoom.min,max:cp.zoom.max,cur:1};$('#zb').hidden=false;await setZoom(cp.zoom.min)}else $('#zb').hidden=true}catch(e){ZM=null}const v=$('#vd');v.srcObject=st;await v.play()}
+starting=true;try{if(!navigator.mediaDevices?.getUserMedia)throw{name:'Unsupported'};const[,st]=await Promise.all([loadCV(),getCam()]);stream=st;ZM=null;try{const tr=st.getVideoTracks()[0],cp=tr.getCapabilities?.()||{};if(cp.focusMode?.includes?.('continuous'))tr.applyConstraints({advanced:[{focusMode:'continuous'}]}).catch(()=>{});if(cp.zoom&&cp.zoom.max>cp.zoom.min){ZM={min:cp.zoom.min,max:cp.zoom.max,cur:1};$('#zb').hidden=false;await setZoom(cp.zoom.min)}else $('#zb').hidden=true}catch(e){ZM=null}const v=$('#vd');v.srcObject=st;await v.play()}
 catch(e){starting=false;stopLive();if(!(window.cv&&cv.Mat))return;camOff=true;msg(!window.isSecureContext?'Kamera langsung hanya bisa di HTTPS (bukan file:// atau tampilan tertanam). Host file ini di HTTPS, atau pakai Ambil foto / Unggah foto.':e&&e.name==='NotAllowedError'?'Izin kamera ditolak atau diblokir oleh tampilan ini. Izinkan kamera untuk situs ini, atau pakai Ambil foto.':e&&e.name==='NotReadableError'?'Kamera sedang dipakai aplikasi atau tab lain. Tutup tab lain yang membuka halaman ini dan aplikasi kamera, lalu ketuk tombol bulat untuk mencoba lagi.':'Kamera langsung tidak bisa dibuka di tampilan ini ('+(e&&e.name||'error')+'). Pakai Ambil foto atau Unggah foto.');return}
 starting=false;live=true;S={m:curM(),base:null,res:null};$('#cv').hidden=false;$('#ph').hidden=true;$('#bc').classList.remove('re');$('#out').hidden=true;requestAnimationFrame(loop)}
 async function setZoom(z){if(!ZM||!stream)return;z=Math.max(ZM.min,Math.min(ZM.max,z));try{await stream.getVideoTracks()[0].applyConstraints({advanced:[{zoom:z}]});ZM.cur=z;$('#zb').textContent=(Math.round(z*10)/10)+'×'}catch(e){}}
 function stopLive(){ZM=null;$('#zb').hidden=true;live=false;stream?.getTracks().forEach(t=>t.stop());stream=null;$('#bc').classList.add('re');$('#lv').hidden=true}
 function vdraw(g,v,w,h,rot){if(!rot)return g.drawImage(v,0,0,w,h);g.save();g.translate(w,0);g.rotate(Math.PI/2);g.drawImage(v,0,0,h,w);g.restore()}
+
+/* Auto-tangkap toleran: hasil diputuskan dengan suara terbanyak dari beberapa frame terakhir */
+function bubs(res){const o=[];res.ans.forEach(a=>{for(let k=0;k<4;k++)o.push([a,k])});(res.ans2||[]).forEach(a=>{for(let k=0;k<4;k++)o.push([a,k])});(res.ans3||[]).forEach(r=>r.forEach(a=>{for(let k=0;k<2;k++)o.push([a,k])}));res.nid.forEach(r=>{for(let k=0;k<10;k++)o.push([r.mk,k])});return o}
+const bvec=res=>bubs(res).map(([a,k])=>a.includes(k)?1:0);
+function bset(res,v){const g=new Map();bubs(res).forEach(([a,k],i)=>{if(!g.has(a))g.set(a,[]);if(v[i])g.get(a).push(k)});g.forEach((l,a)=>{a.length=0;a.push(...l)})}
+function consensus(){let ok=false;if(S.res){const v=bvec(S.res);if(!S.hist||S.hn!==v.length){S.hist=[];S.hn=v.length}S.hist.push(v);if(S.hist.length>8)S.hist.shift();const Hh=S.hist,n=Hh.length,cons=v.map((_,i)=>Hh.reduce((q,x)=>q+x[i],0)*2>n?1:0);if(n>=3)bset(S.res,cons);const df=Hh.map(x=>x.reduce((q,y,i)=>q+(y!==cons[i]?1:0),0));ok=n>=6&&df.slice(-6).every(x=>x<=2)&&S.res.ans.some(a=>a.length)}else S.hist=null;return ok}
+let CAP=1080;
 function loop(t){if(!live)return;requestAnimationFrame(loop);if(t-lastT<110)return;lastT=t;const v=$('#vd');if(!v.videoWidth)return;
-const rot=v.videoWidth>v.videoHeight&&innerHeight>innerWidth,sw=rot?v.videoHeight:v.videoWidth,sh=rot?v.videoWidth:v.videoHeight;const c=$('#cv'),k=Math.min(1,720/sw),w=Math.round(sw*k),h=Math.round(sh*k);if(c.width!==w||c.height!==h){c.width=w;c.height=h}
+const rot=v.videoWidth>v.videoHeight&&innerHeight>innerWidth,sw=rot?v.videoHeight:v.videoWidth,sh=rot?v.videoWidth:v.videoHeight;const c=$('#cv'),k=Math.min(1,CAP/sw),w=Math.round(sw*k),h=Math.round(sh*k);if(c.width!==w||c.height!==h){c.width=w;c.height=h}
 vdraw(c.getContext('2d'),v,w,h,rot);S.m=curM();if(!S.m)return;
-const gd=guide(w,h,S.m);try{S.res=analyze(c,S.m,thr(),gd)}catch(e){S.res=null}showRes();drawGuide(c.getContext('2d'),gd,S.res?[1,1,1,1]:lastHit);
-if(S.res&&$('#auto').checked&&S.res.ans.some(a=>a.length)){const sg=JSON.stringify([S.res.ans,S.res.ans2,S.res.ans3,S.res.nid.map(r=>r.mk)]);if(sg===S.sg)S.st++;else{S.sg=sg;S.st=1}if(S.st>=7){navigator.vibrate?.(60);capture()}}else S.st=0}
+const gd=guide(w,h,S.m),t0=performance.now();try{S.res=analyze(c,S.m,thr(),gd)}catch(e){S.res=null}if(performance.now()-t0>260&&CAP>720)CAP=720;const ok=consensus();showRes();drawGuide(c.getContext('2d'),gd,S.res?[1,1,1,1]:lastHit);
+if(ok&&$('#auto').checked){navigator.vibrate?.(60);capture()}}
 function capture(){const v=$('#vd'),c=$('#cv'),b=document.createElement('canvas');b.width=c.width;b.height=c.height;vdraw(b.getContext('2d'),v,b.width,b.height,v.videoWidth>v.videoHeight&&b.width<b.height);setStatic(b,guide(b.width,b.height,curM()))}
 $('#cv').onclick=e=>{if(live||!S?.res)return;const r=e.target.getBoundingClientRect(),cw=e.target.width,ch=e.target.height,k=Math.min(r.width/cw,r.height/ch),x=(e.clientX-r.left-(r.width-cw*k)/2)/k,y=(e.clientY-r.top-(r.height-ch*k)/2)/k;const R=S.res,C=[];R.nid.forEach((o,r)=>o.P.forEach((p,k)=>C.push({p,t:'n',r,k,rd:9})));R.P.forEach((row,n)=>row.forEach((p,k)=>C.push({p,t:'1',n,k,rd:18})));(R.P2||[]).forEach((row,n)=>row.forEach((p,k)=>C.push({p,t:'2',n,k,rd:13})));(R.P3||[]).forEach((r3,n)=>r3.forEach((r,j)=>r.forEach((p,k)=>C.push({p,t:'3',n,j,k,rd:11}))));
 let c0=null,bd=1e9;C.forEach(c=>{const d=Math.hypot(c.p[0]-x,c.p[1]-y);if(d<bd){bd=d;c0=c}});if(!c0||bd>c0.rd*R.sc)return;
