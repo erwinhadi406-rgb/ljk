@@ -194,8 +194,12 @@ const sheetK=m=>{const f4=m.kertas==='f4';return Math.min((f4?330:297)/2/700,(f4
 const bfOf=m=>sheetK(m)/((m.kertas==='f4'?215:210)/700);/* pengecil bulatan pilihan & 4 kotak sudut pada cetak 1 lembar/halaman: ukuran fisiknya = cetak 2 lembar/halaman */
 /* Bagi dua kolom: <=10 soal dibagi rata, 11-20 soal kiri 10 sisanya kanan, >20 soal dibagi rata */
 const halfPG=m=>{const n=m.jumlah;return n<=10?Math.ceil(n/2):n<=20?Math.min(10,n):Math.ceil(n/2)};
-const bandBottom=m=>280+25+halfPG(m)*30;
-const plan=m=>{let y=bandBottom(m);const n2=m.dua||0,n3=m.tiga||0,p={n2,n3,pc:Math.max(1,Math.ceil(n3/2))};if(n2){p.t2=y+36;y=p.t2+25+Math.min(10,n2)*24}if(n3){p.t3=y+36;y=p.t3+25+Math.min(p.pc,n3)*72}p.bottom=y;return p};
+/* Tinggi baris menyesuaikan otomatis (u 0..1) agar isi + 4 kotak deteksi muat di halaman */
+const rowsU=u=>({r1:30-6*u,r2:24-2*u,r3:24-2*u,g:36-6*u});
+const planU=(m,u)=>{const R=rowsU(u);let y=280+25+halfPG(m)*R.r1;const n2=m.dua||0,n3=m.tiga||0,p={n2,n3,pc:Math.max(1,Math.ceil(n3/2)),...R};if(n2){p.t2=y+R.g;y=p.t2+25+Math.min(10,n2)*R.r2}if(n3){p.t3=y+R.g;y=p.t3+25+Math.min(p.pc,n3)*R.r3*3}p.bottom=y;return p};
+const uCache=new Map();
+const uOf=m=>{const key=[m.jumlah,m.dua||0,m.tiga||0,m.kertas].join('|');let u=uCache.get(key);if(u===undefined){u=1;for(let i=0;i<=20;i++){if(planU(m,i/20).bottom+72<=PHof(m)){u=i/20;break}}uCache.set(key,u)}return u};
+const plan=m=>planU(m,uOf(m));
 const over=m=>plan(m).bottom+72>PHof(m);
 /* Geometri kolom (koordinat 700 lebar): tabel dirapatkan & dipusatkan, 4 kotak sudut digeser ke dalam */
 const TX=[90,372],TW=238,NOC=50,SPC=47,MX0=62,MX1=638;
@@ -203,9 +207,9 @@ const MKf=m=>{const yb=plan(m).bottom+27;return[[MX0,173],[MX1,173],[MX0,yb],[MX
 const isianStart=m=>MKf(m)[2][1]+73,isianCap=m=>{const v=PHof(m)-60-isianStart(m);return v<0?0:Math.floor(v/46)+1};
 const NID={x:430,y:210,w:220,lw:44,hh:14,rh:20,r:6.5,c0:474,pitch:17.6};
 const nidPos=(r,d)=>({x:NID.c0+NID.pitch*(d+.5),y:NID.y+NID.hh+NID.rh*(r+.5)});
-const p2=(P,q,k)=>{const x0=q<10?TX[0]:TX[1];return{x:x0+NOC+SPC/2+k*SPC,y:P.t2+25+(q%10+.5)*24,nx:x0+NOC/2}};
-const p3=(P,q,j,k)=>{const x0=Math.floor(q/P.pc)?TX[1]:TX[0],r=q%P.pc*3+j;return{x:x0+(k?196:112),y:P.t3+25+(r+.5)*24,nx:x0+18,ly:P.t3+25+(q%P.pc*3+1.5)*24}};
-const pos=(q,k,m)=>{const L=halfPG(m),c=q>=L?1:0,r=c?q-L:q,x0=TX[c];return{x:x0+NOC+SPC/2+k*SPC,y:320+r*30,nx:x0+NOC/2}};
+const p2=(P,q,k)=>{const x0=q<10?TX[0]:TX[1];return{x:x0+NOC+SPC/2+k*SPC,y:P.t2+25+(q%10+.5)*P.r2,nx:x0+NOC/2}};
+const p3=(P,q,j,k)=>{const x0=Math.floor(q/P.pc)?TX[1]:TX[0],r=q%P.pc*3+j;return{x:x0+(k?196:112),y:P.t3+25+(r+.5)*P.r3,nx:x0+18,ly:P.t3+25+(q%P.pc*3+1.5)*P.r3}};
+const pos=(q,k,m)=>{const L=halfPG(m),c=q>=L?1:0,r=c?q-L:q,x0=TX[c];return{x:x0+NOC+SPC/2+k*SPC,y:305+(r+.5)*rowsU(uOf(m)).r1,nx:x0+NOC/2}};
 function layout(m,bf=1){const s=D.school,n=m.jumlah,o=[],T=(x,y,t,z=12,b=0,a='s')=>o.push({t:'t',x,y,s:String(t),z,b,a}),L=(x1,y1,x2,y2,lw=1,d=0)=>o.push({t:'l',x1,y1,x2,y2,lw,d}),R=(x,y,w,h,f,lw=1.2)=>o.push({t:'r',x,y,w,h,f,lw});
 const mh=15*bf;MKf(m).forEach(([x,y])=>R(x-mh,y-mh,mh*2,mh*2,1));
 const sk=(s.skpd||'').trim();if(sk)T(350,60,sk.toUpperCase(),11,1,'m');T(350,sk?81:78,(s.nama||'').toUpperCase(),sk?19:20,1,'m');T(350,96,(s.alamat||'')+(s.npsn?' | NPSN: '+s.npsn:''),10.5,0,'m');if(s.logoSkpd)o.push({t:'i',src:s.logoSkpd,x:50,y:50,w:50,h:50});if(s.logoSek)o.push({t:'i',src:s.logoSek,x:600,y:50,w:50,h:50});L(50,106,650,106,3);T(350,134,'LEMBAR JAWABAN',17,1,'m');T(350,152,(s.judul||'').toUpperCase(),12,1,'m');T(350,168,'TAHUN PELAJARAN '+s.tahun,12,1,'m');
@@ -213,14 +217,14 @@ const sk=(s.skpd||'').trim();if(sk)T(350,60,sk.toUpperCase(),11,1,'m');T(350,sk?
 T(165,233,m.nama);
 {const N=NID,hb=N.hh+N.rh*2;R(N.x,N.y,N.w,hb,0,.9);L(N.x+N.lw,N.y,N.x+N.lw,N.y+hb,.9);L(N.x,N.y+N.hh,N.x+N.w,N.y+N.hh,.9);L(N.x,N.y+N.hh+N.rh,N.x+N.w,N.y+N.hh+N.rh,.9);T(N.x+N.lw/2,N.y+10,'No. Absen',7.5,1,'m');
 ['Puluhan','Satuan'].forEach((l,r)=>{T(N.x+N.lw/2,nidPos(r,0).y+3,l,8,0,'m');for(let d=0;d<10;d++){const p=nidPos(r,d);o.push({t:'c',x:p.x,y:p.y,r:N.r});if(!r)T(p.x,N.y+10.5,d,8.5,1,'m')}})}T(TX[0],270,'I. Pilihan Ganda (Hitamkan bulatan jawaban yang benar)',12,1);
-for(let c=0;c<2;c++){const cnt=Math.max(0,c?n-halfPG(m):Math.min(n,halfPG(m)));if(!cnt)continue;const x0=TX[c],y0=280,h=25+cnt*30;
-R(x0,y0,TW,h,0);L(x0+NOC,y0,x0+NOC,y0+h);T(x0+NOC/2,y0+17,'No',12,1,'m');T(x0+NOC+(TW-NOC)/2,y0+17,'Pilihan Jawaban',12,1,'m');for(let r=0;r<=cnt;r++)L(x0,y0+25+r*30,x0+TW,y0+25+r*30)}
+for(let c=0;c<2;c++){const cnt=Math.max(0,c?n-halfPG(m):Math.min(n,halfPG(m)));if(!cnt)continue;const x0=TX[c],y0=280,h=25+cnt*plan(m).r1;
+R(x0,y0,TW,h,0);L(x0+NOC,y0,x0+NOC,y0+h);T(x0+NOC/2,y0+17,'No',12,1,'m');T(x0+NOC+(TW-NOC)/2,y0+17,'Pilihan Jawaban',12,1,'m');for(let r=0;r<=cnt;r++)L(x0,y0+25+r*plan(m).r1,x0+TW,y0+25+r*plan(m).r1)}
 for(let q=0;q<n;q++){const p=pos(q,0,m);T(p.nx,p.y+4,q+1,12,0,'m');for(let k=0;k<4;k++){const c=pos(q,k,m);o.push({t:'c',x:c.x,y:c.y,r:10*bf,sw:bf});T(c.x,c.y+3.8*bf,'ABCD'[k],10.5*bf,0,'m')}}
 const P=plan(m);
-if(P.n2){T(TX[0],P.t2-10,'II. Pilihan Ganda Kompleks (Hitamkan semua jawaban yang benar, boleh lebih dari satu)',12,1);for(let c=0;c<2;c++){const cnt=Math.max(0,Math.min(10,P.n2-c*10));if(!cnt)continue;const x0=TX[c],h=25+cnt*24;R(x0,P.t2,TW,h,0);L(x0+NOC,P.t2,x0+NOC,P.t2+h);T(x0+NOC/2,P.t2+17,'No',12,1,'m');T(x0+NOC+(TW-NOC)/2,P.t2+17,'Pilihan Jawaban',12,1,'m');for(let r=0;r<=cnt;r++)L(x0,P.t2+25+r*24,x0+TW,P.t2+25+r*24)}
+if(P.n2){T(TX[0],P.t2-10,'II. Pilihan Ganda Kompleks (Hitamkan semua jawaban yang benar, boleh lebih dari satu)',12,1);for(let c=0;c<2;c++){const cnt=Math.max(0,Math.min(10,P.n2-c*10));if(!cnt)continue;const x0=TX[c],h=25+cnt*P.r2;R(x0,P.t2,TW,h,0);L(x0+NOC,P.t2,x0+NOC,P.t2+h);T(x0+NOC/2,P.t2+17,'No',12,1,'m');T(x0+NOC+(TW-NOC)/2,P.t2+17,'Pilihan Jawaban',12,1,'m');for(let r=0;r<=cnt;r++)L(x0,P.t2+25+r*P.r2,x0+TW,P.t2+25+r*P.r2)}
 for(let q=0;q<P.n2;q++){const a=p2(P,q,0);T(a.nx,a.y+4,q+1+n,12,0,'m');for(let k=0;k<4;k++){const c=p2(P,q,k);o.push({t:'q',x:c.x,y:c.y,r:10*bf,sw:bf});T(c.x,c.y+3.8*bf,'ABCD'[k],10.5*bf,0,'m')}}}
-if(P.n3){T(TX[0],P.t3-10,'III. Benar / Salah (Hitamkan B atau S untuk setiap pernyataan)',12,1);for(let c=0;c<2;c++){const cnt=Math.max(0,Math.min(P.pc,P.n3-c*P.pc));if(!cnt)continue;const x0=TX[c],h=25+cnt*72;R(x0,P.t3,TW,h,0);L(x0+36,P.t3,x0+36,P.t3+h);L(x0+70,P.t3,x0+70,P.t3+h);L(x0+154,P.t3+25,x0+154,P.t3+h);L(x0,P.t3+25,x0+TW,P.t3+25);T(x0+18,P.t3+17,'No',12,1,'m');T(x0+112,P.t3+17,'Benar',12,1,'m');T(x0+196,P.t3+17,'Salah',12,1,'m');for(let s=1;s<cnt;s++)L(x0,P.t3+25+s*72,x0+TW,P.t3+25+s*72,2.2);for(let r=0;r<cnt*3;r++)if(r%3)L(x0+36,P.t3+25+r*24,x0+TW,P.t3+25+r*24,.6)}
-for(let q=0;q<P.n3;q++){const np=m.np?.[q]??3,a=p3(P,q,0,0);T(a.nx,a.ly+4,q+1+n+P.n2,12,1,'m');for(let j=0;j<3;j++){const y=a.y+j*24,x0=a.nx-18;if(j<np){T(x0+53,y+4,'abc'[j],11,0,'m');for(let k=0;k<2;k++){const c=p3(P,q,j,k);o.push({t:'c',x:c.x,y:c.y,r:10*bf,sw:bf});T(c.x,c.y+3.8*bf,'BS'[k],10.5*bf,0,'m')}}else{L(x0+72,y-11,x0+236,y+11,.5);L(x0+72,y+11,x0+236,y-11,.5)}}}}
+if(P.n3){T(TX[0],P.t3-10,'III. Benar / Salah (Hitamkan B atau S untuk setiap pernyataan)',12,1);for(let c=0;c<2;c++){const cnt=Math.max(0,Math.min(P.pc,P.n3-c*P.pc));if(!cnt)continue;const x0=TX[c],h=25+cnt*3*P.r3;R(x0,P.t3,TW,h,0);L(x0+36,P.t3,x0+36,P.t3+h);L(x0+70,P.t3,x0+70,P.t3+h);L(x0+154,P.t3+25,x0+154,P.t3+h);L(x0,P.t3+25,x0+TW,P.t3+25);T(x0+18,P.t3+17,'No',12,1,'m');T(x0+112,P.t3+17,'Benar',12,1,'m');T(x0+196,P.t3+17,'Salah',12,1,'m');for(let s=1;s<cnt;s++)L(x0,P.t3+25+s*3*P.r3,x0+TW,P.t3+25+s*3*P.r3,2.2);for(let r=0;r<cnt*3;r++)if(r%3)L(x0+36,P.t3+25+r*P.r3,x0+TW,P.t3+25+r*P.r3,.6)}
+for(let q=0;q<P.n3;q++){const np=m.np?.[q]??3,a=p3(P,q,0,0);T(a.nx,a.ly+4,q+1+n+P.n2,12,1,'m');for(let j=0;j<3;j++){const y=a.y+j*P.r3,x0=a.nx-18;if(j<np){T(x0+53,y+4,'abc'[j],11,0,'m');for(let k=0;k<2;k++){const c=p3(P,q,j,k);o.push({t:'c',x:c.x,y:c.y,r:10*bf,sw:bf});T(c.x,c.y+3.8*bf,'BS'[k],10.5*bf,0,'m')}}else{L(x0+72,y-P.r3/2,x0+236,y+P.r3/2,.5);L(x0+72,y+P.r3/2,x0+236,y-P.r3/2,.5)}}}}
 const ni=Math.min(m.isian||0,isianCap(m));if(ni>0){const st=isianStart(m);T(TX[0],st-25,'II. Isian',12,1);for(let i=0;i<ni;i++){const y=st+i*46;T(TX[0],y,(i+1)+'.',12);L(TX[0]+30,y+10,TX[1]+TW,y+10,.8,1);L(TX[0]+30,y+32,TX[1]+TW,y+32,.8,1)}}
 return o}
 function svgOf(it,H){return`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 ${H}" font-family="Times New Roman,serif"><rect width="700" height="${H}" fill="#fff"/>`+it.map(p=>p.t==='t'?`<text x="${p.x}" y="${p.y}" font-size="${p.z}" font-weight="${p.b?'bold':'normal'}" text-anchor="${p.a==='m'?'middle':'start'}">${esc(p.s)}</text>`:p.t==='l'?`<line x1="${p.x1}" y1="${p.y1}" x2="${p.x2}" y2="${p.y2}" stroke="#000" stroke-width="${p.lw}"${p.d?' stroke-dasharray="2 2"':''}/>`:p.t==='r'?`<rect x="${p.x}" y="${p.y}" width="${p.w}" height="${p.h}" ${p.f?'':`fill="none" stroke="#000" stroke-width="${p.lw}"`}/>`:p.t==='i'?`<image href="${p.src}" x="${p.x}" y="${p.y}" width="${p.w}" height="${p.h}" preserveAspectRatio="xMidYMid meet"/>`:p.t==='q'?`<rect x="${p.x-p.r}" y="${p.y-p.r}" width="${2*p.r}" height="${2*p.r}" rx="${1.5*(p.sw||1)}" fill="none" stroke="#000" stroke-width="${1.2*(p.sw||1)}"/>`:`<circle cx="${p.x}" cy="${p.y}" r="${p.r}" fill="none" stroke="#000" stroke-width="${1.2*(p.sw||1)}"/>`).join('')+'</svg>'}
