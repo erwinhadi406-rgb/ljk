@@ -185,7 +185,9 @@ function go(v){if(!V.includes(v))v='beranda';curV=v;if(v!=='scanner')try{stopLiv
 addEventListener('hashchange',()=>go(location.hash.slice(1)));
 /* ===== template LJK (koordinat 700x990, dipakai untuk SVG, PDF, dan pembacaan scan) ===== */
 const PHof=m=>m.kertas==='f4'?1074:990;
-const bandBottom=m=>{const n=m.jumlah,b=Math.floor((n-1)/20),c=Math.min(10,n-b*20);return 280+b*330+25+c*30};
+/* Bagi dua kolom: <=10 soal dibagi rata, 11-20 soal kiri 10 sisanya kanan, >20 soal dibagi rata */
+const halfPG=m=>{const n=m.jumlah;return n<=10?Math.ceil(n/2):n<=20?Math.min(10,n):Math.ceil(n/2)};
+const bandBottom=m=>280+25+halfPG(m)*30;
 const plan=m=>{let y=bandBottom(m);const n2=m.dua||0,n3=m.tiga||0,p={n2,n3,pc:Math.max(1,Math.ceil(n3/2))};if(n2){p.t2=y+36;y=p.t2+25+Math.min(10,n2)*24}if(n3){p.t3=y+36;y=p.t3+25+Math.min(p.pc,n3)*72}p.bottom=y;return p};
 const over=m=>plan(m).bottom+72>PHof(m);
 const MKf=m=>{const yb=plan(m).bottom+27;return[[30,173],[670,173],[30,yb],[670,yb]]};
@@ -194,7 +196,7 @@ const NID={x:430,y:210,w:220,lw:44,hh:14,rh:20,r:6.5,c0:474,pitch:17.6};
 const nidPos=(r,d)=>({x:NID.c0+NID.pitch*(d+.5),y:NID.y+NID.hh+NID.rh*(r+.5)});
 const p2=(P,q,k)=>{const x0=q<10?40:365;return{x:x0+90+k*55,y:P.t2+25+(q%10+.5)*24,nx:x0+35}};
 const p3=(P,q,j,k)=>{const x0=Math.floor(q/P.pc)?365:40,r=q%P.pc*3+j;return{x:x0+(k?235:140),y:P.t3+25+(r+.5)*24,nx:x0+22,ly:P.t3+25+(q%P.pc*3+1.5)*24}};
-const pos=(q,k)=>{const b=Math.floor(q/20),c=Math.floor(q%20/10),r=q%10,x0=c?365:40;return{x:x0+90+k*55,y:320+b*330+r*30,nx:x0+35}};
+const pos=(q,k,m)=>{const L=halfPG(m),c=q>=L?1:0,r=c?q-L:q,x0=c?365:40;return{x:x0+90+k*55,y:320+r*30,nx:x0+35}};
 function layout(m){const s=D.school,n=m.jumlah,o=[],T=(x,y,t,z=12,b=0,a='s')=>o.push({t:'t',x,y,s:String(t),z,b,a}),L=(x1,y1,x2,y2,lw=1,d=0)=>o.push({t:'l',x1,y1,x2,y2,lw,d}),R=(x,y,w,h,f,lw=1.2)=>o.push({t:'r',x,y,w,h,f,lw});
 MKf(m).forEach(([x,y])=>R(x-15,y-15,30,30,1));
 const sk=(s.skpd||'').trim();if(sk)T(350,60,sk.toUpperCase(),11,1,'m');T(350,sk?81:78,(s.nama||'').toUpperCase(),sk?19:20,1,'m');T(350,96,(s.alamat||'')+(s.npsn?' | NPSN: '+s.npsn:''),10.5,0,'m');if(s.logoSkpd)o.push({t:'i',src:s.logoSkpd,x:50,y:50,w:50,h:50});if(s.logoSek)o.push({t:'i',src:s.logoSek,x:600,y:50,w:50,h:50});L(50,106,650,106,3);T(350,134,'LEMBAR JAWABAN',17,1,'m');T(350,152,(s.judul||'').toUpperCase(),12,1,'m');T(350,168,'TAHUN PELAJARAN '+s.tahun,12,1,'m');
@@ -202,9 +204,9 @@ const sk=(s.skpd||'').trim();if(sk)T(350,60,sk.toUpperCase(),11,1,'m');T(350,sk?
 T(165,233,m.nama);
 {const N=NID,hb=N.hh+N.rh*2;R(N.x,N.y,N.w,hb,0,.9);L(N.x+N.lw,N.y,N.x+N.lw,N.y+hb,.9);L(N.x,N.y+N.hh,N.x+N.w,N.y+N.hh,.9);L(N.x,N.y+N.hh+N.rh,N.x+N.w,N.y+N.hh+N.rh,.9);T(N.x+N.lw/2,N.y+10,'No. Absen',7.5,1,'m');
 ['Puluhan','Satuan'].forEach((l,r)=>{T(N.x+N.lw/2,nidPos(r,0).y+3,l,8,0,'m');for(let d=0;d<10;d++){const p=nidPos(r,d);o.push({t:'c',x:p.x,y:p.y,r:N.r});if(!r)T(p.x,N.y+10.5,d,8.5,1,'m')}})}T(50,270,'I. Pilihan Ganda (Hitamkan bulatan jawaban yang benar)',12,1);
-for(let b=0;b<2;b++)for(let c=0;c<2;c++){const cnt=Math.max(0,Math.min(10,n-b*20-c*10));if(!cnt)continue;const x0=c?365:40,y0=280+b*330,h=25+cnt*30;
+for(let c=0;c<2;c++){const cnt=Math.max(0,c?n-halfPG(m):Math.min(n,halfPG(m)));if(!cnt)continue;const x0=c?365:40,y0=280,h=25+cnt*30;
 R(x0,y0,295,h,0);L(x0+70,y0,x0+70,y0+h);T(x0+35,y0+17,'No',12,1,'m');T(x0+182,y0+17,'Pilihan Jawaban',12,1,'m');for(let r=0;r<=cnt;r++)L(x0,y0+25+r*30,x0+295,y0+25+r*30)}
-for(let q=0;q<n;q++){const p=pos(q,0);T(p.nx,p.y+4,q+1,12,0,'m');for(let k=0;k<4;k++){const c=pos(q,k);o.push({t:'c',x:c.x,y:c.y,r:10});T(c.x,c.y+3.8,'ABCD'[k],10.5,0,'m')}}
+for(let q=0;q<n;q++){const p=pos(q,0,m);T(p.nx,p.y+4,q+1,12,0,'m');for(let k=0;k<4;k++){const c=pos(q,k,m);o.push({t:'c',x:c.x,y:c.y,r:10});T(c.x,c.y+3.8,'ABCD'[k],10.5,0,'m')}}
 const P=plan(m);
 if(P.n2){T(50,P.t2-10,'II. Pilihan Ganda Kompleks (Hitamkan semua jawaban yang benar, boleh lebih dari satu)',12,1);for(let c=0;c<2;c++){const cnt=Math.max(0,Math.min(10,P.n2-c*10));if(!cnt)continue;const x0=c?365:40,h=25+cnt*24;R(x0,P.t2,295,h,0);L(x0+70,P.t2,x0+70,P.t2+h);T(x0+35,P.t2+17,'No',12,1,'m');T(x0+182,P.t2+17,'Pilihan Jawaban',12,1,'m');for(let r=0;r<=cnt;r++)L(x0,P.t2+25+r*24,x0+295,P.t2+25+r*24)}
 for(let q=0;q<P.n2;q++){const a=p2(P,q,0);T(a.nx,a.y+4,q+1+n,12,0,'m');for(let k=0;k<4;k++){const c=p2(P,q,k);o.push({t:'q',x:c.x,y:c.y,r:10});T(c.x,c.y+3.8,'ABCD'[k],10.5,0,'m')}}}
@@ -428,12 +430,12 @@ cv.warpPerspective(g,wp,T,new cv.Size(700,HH));cv.adaptiveThreshold(wp,wb,255,cv
 const d=wb.data,H=homog(MKm,pts.map(p=>[p[0]+rx,p[1]+ry])),rt=(x,y,R,L)=>{let dk=0,t=0;for(let dy=-R;dy<=R;dy++)for(let dx=-R;dx<=R;dx++){if(dx*dx+dy*dy>L)continue;t++;if(d[(Math.round(y)+dy)*700+Math.round(x)+dx])dk++}return dk/t},mpp=p=>mp(H,p.x,p.y);
 /* Rasio gelap tiap bulatan dihitung dulu; batas "terisi" dicari otomatis dari bulatan kosong (median) per jenis soal */
 const med=a=>{if(!a.length)return 0;const q=[...a].sort((x,y)=>x-y);return q[q.length>>1]},TH=a=>{const b=med(a);return b<.55?Math.max(b+th*.56,.4):th},mkr=(r,t)=>r.map((v,k)=>v>=t?k:-1).filter(k=>k>=0);
-const rA=[];for(let n=0;n<m.jumlah;n++)rA.push([0,1,2,3].map(k=>{const p=pos(n,k);return rt(p.x,p.y,6,36)}));
+const rA=[];for(let n=0;n<m.jumlah;n++)rA.push([0,1,2,3].map(k=>{const p=pos(n,k,m);return rt(p.x,p.y,6,36)}));
 const rN=[0,1].map(r=>Array.from({length:10},(_,k)=>{const p=nidPos(r,k);return rt(p.x,p.y,3,10)}));
 const PL=plan(m),rP2=[],rP3=[];for(let n=0;n<PL.n2;n++)rP2.push([0,1,2,3].map(k=>{const p=p2(PL,n,k);return rt(p.x,p.y,6,36)}));
 for(let n=0;n<PL.n3;n++)rP3.push(Array.from({length:m.np?.[n]??3},(_,j)=>[0,1].map(k=>{const p=p3(PL,n,j,k);return rt(p.x,p.y,6,36)})));
 const tA=TH(rA.flat()),tN=TH(rN.flat()),t2=TH(rP2.flat()),t3=TH(rP3.flat(2));
-const P=rA.map((r,n)=>r.map((_,k)=>mpp(pos(n,k)))),ans=rA.map(r=>mkr(r,tA)),nid=rN.map((r,ri)=>({P:r.map((_,k)=>mpp(nidPos(ri,k))),mk:mkr(r,tN)})),
+const P=rA.map((r,n)=>r.map((_,k)=>mpp(pos(n,k,m)))),ans=rA.map(r=>mkr(r,tA)),nid=rN.map((r,ri)=>({P:r.map((_,k)=>mpp(nidPos(ri,k))),mk:mkr(r,tN)})),
 P2=rP2.map((r,n)=>r.map((_,k)=>mpp(p2(PL,n,k)))),ans2=rP2.map(r=>mkr(r,t2)),P3=rP3.map((s,n)=>s.map((r,j)=>r.map((_,k)=>mpp(p3(PL,n,j,k))))),ans3=rP3.map(s=>s.map(r=>mkr(r,t3)));
 const o0=mp(H,0,0),o1=mp(H,100,0);return{P,ans,nid,P2,ans2,P3,ans3,sc:Math.hypot(o1[0]-o0[0],o1[1]-o0[1])/100}
 }finally{ms.forEach(x=>x.delete())}}
