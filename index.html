@@ -547,6 +547,12 @@ document.addEventListener('toggle',e=>{const k=e.target.dataset?.sec;if(k)sec[k]
 document.addEventListener('input',e=>{const f=e.target.dataset.f;if(f){D.school[f]=e.target.value;save()}const dn=e.target.dataset.dpn;if(dn!==undefined&&DP){DP.g[DP.names[DP.sel]][+dn].pendek=e.target.value.trim()}const sp=e.target.dataset.spd;if(sp){const st=D.siswa.find(x=>x.id===sp);if(st){st.pendek=e.target.value.trim();save()}}});
 go(location.hash.slice(1));
 
+/* ===== Enter cerdas: pindah ke nama panggilan siswa berikutnya (dialog impor & dashboard siswa) ===== */
+const pnList=el=>{const root=el.closest('#dpm,#p-sek');return root?[...root.querySelectorAll('input.pn')]:[el]};
+document.addEventListener('focusin',e=>{const t=e.target;if(!t.matches?.('input.pn'))return;const L=pnList(t);t.enterKeyHint=t===L[L.length-1]?'done':'next'});
+document.addEventListener('keydown',e=>{const t=e.target;if(e.key!=='Enter'||e.isComposing||!t.matches?.('input.pn'))return;e.preventDefault();
+const L=pnList(t),i=L.indexOf(t),n=L[i+(e.shiftKey?-1:1)];
+if(n){n.focus({preventScroll:true});n.select();n.scrollIntoView({block:'center',behavior:'smooth'})}else{t.blur();if(!e.shiftKey)toast('Semua nama panggilan sudah dilewati')}});
 /* ===== pengaturan kamera: ukuran bingkai, zoom, resolusi ===== */
 (()=>{let c={};try{c=JSON.parse(localStorage.getItem('ljk_cam')||'{}')}catch(e){}
 const sv=()=>{try{localStorage.setItem('ljk_cam',JSON.stringify({gs:Math.round(GS*100),rs:RS}))}catch(e){}};
