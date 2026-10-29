@@ -123,6 +123,10 @@ details.acc>summary>.stt{flex:1;min-width:0}.sub2{color:var(--mut);font-size:13p
 .at.bq td{background:var(--card)}.at.bq td small{display:block;color:var(--mut);font-size:11px}.at.bq .pn0{min-width:84px;line-height:1.9}.pk{color:#5B5BF0;font-size:12px}.lv{display:inline-block;font-size:11px;font-weight:600;padding:1px 10px;border-radius:999px}.lv.Mudah{background:#12A15026;color:var(--ok)}.lv.Sedang{background:#F2B20033;color:#B45309}.lv.Sulit{background:#E5484D26;color:var(--bad)}.lv.w{background:#F2B2001f;color:#C2410C}
 .at.bq td.nm2{text-align:left;min-width:260px}.ncs{display:flex;flex-wrap:wrap;gap:6px}.nc{font-size:12.5px;font-weight:500;padding:3px 11px;border-radius:999px;border:1px solid}.nc.g{background:#12A15018;color:#047857;border-color:#12A15055}.nc.r{background:#E5484D14;color:#DC2626;border-color:#E5484D55}
 @media(max-width:640px){.bbs{width:100%}.dlb{flex:1;justify-content:center}}
+
+main{min-width:0}.card,.rc{min-width:0}.rc>*{min-width:0}
+@media(max-width:860px){.rc{grid-template-columns:minmax(0,1fr)}.rb{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}.ab{min-width:0;padding:10px 2px;font-size:10.5px;line-height:1.2;text-align:center;white-space:normal;overflow-wrap:anywhere}.ab span{display:block}}
+@media(max-width:480px){.rb{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.ab{flex-direction:row;justify-content:flex-start;gap:8px;padding:11px 12px;font-size:12.5px;text-align:left}.ab span{flex:1;min-width:0}.rc{padding:12px}.rmeta span{font-size:11px}}
 </style></head><body>
 <div class="app">
 <nav class="nav">
@@ -214,8 +218,7 @@ async function dlPdf(id,per){const m=D.mapel.find(x=>x.id===id);if(!m)return;if(
 const f4=m.kertas==='f4',pw=f4?215:210,ph=f4?330:297,PH=PHof(m),it=layout(m);let d;
 if(per===2){const k=Math.min(ph/2/700,pw/PH),sw=700*k;d=new jspdf.jsPDF({unit:'mm',format:[pw,ph],orientation:'landscape'});[0,1].forEach(i=>paint(d,it,i*ph/2+(ph/2-sw)/2,k))}
 else{d=new jspdf.jsPDF({unit:'mm',format:[pw,ph],orientation:'portrait'});paint(d,it,0,pw/700)}
-const dl=await (window.claude?.use('downloads')??null);if(!dl)return toast('Unduhan tidak tersedia di sini, gunakan Pratinjau lalu Cetak');
-try{await dl.save({filename:`LJK-${m.nama.replace(/[^\w-]+/g,'_')}-${m.kertas||'a4'}-${per}-per-halaman.pdf`,data:d.output('arraybuffer')});toast('PDF siap disimpan')}catch(e){if(e.code!=='declined')toast('Gagal menyimpan PDF')}}
+await anSave(`LJK-${m.nama.replace(/[^\w-]+/g,'_')}-${m.kertas||'a4'}-${per}-per-halaman.pdf`,d.output('arraybuffer'))}
 /* ===== Beranda ===== */
 /* ===== Foto hasil scan (IndexedDB) & riwayat ===== */
 const idb=()=>new Promise((res,rej)=>{const r=indexedDB.open('ljk_foto',1);r.onupgradeneeded=()=>r.result.createObjectStore('f');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});
@@ -258,7 +261,9 @@ function anHtml(m,hs){const{ok,rows,skip}=anRows(m,hs),kb=kbmOf();if(!ok.length)
 const N=m.jumlah+m.dua+m.tiga,pk=asPk(m).length,ch=(l,c)=>l.length?l.map(n=>`<span class="nc ${c}">${esc(n)}</span>`).join(''):'<span class="sm2">–</span>';
 return`<div class="bh"><div class="bt1"><b>Analisis Butir Soal</b><small>${N} soal • ${ok.length} siswa • <u>${pk} paket</u></small></div><div class="bbs"><label class="bkb">🎓 KBM/KKM: <input id="kbm" type="number" min="0" max="100" value="${kb}" aria-label="KBM/KKM soal"> — soal dengan % benar &lt; ${kb}% perlu perhatian</label><span class="bin"><i>i</i> Nama menggunakan <b>nama panggilan</b></span><button class="dlb xl" data-act="anxls"><svg viewBox="0 0 24 24"><path d="M12 4v11M7 11l5 5 5-5M5 20h14"/></svg>Download Excel</button><button class="dlb pd" data-act="anpdf"><svg viewBox="0 0 24 24"><path d="M12 4v11M7 11l5 5 5-5M5 20h14"/></svg>Download PDF</button></div></div>
 <div class="at bq"><table><thead><tr><th class="h0">Paket / No</th><th class="hg">Jml Benar</th><th class="hg2">Nama Siswa (Benar)</th><th class="hr">Jml Salah</th><th class="hr2">Nama Siswa (Salah)</th></tr></thead><tbody>${rows.map(r=>`<tr><td class="pn0"><span class="pk">P${r.pk}</span> <b>${r.no}</b><br><span class="lv ${r.lv}">${r.lv}</span>${r.p<kb?'<br><span class="lv w">⚠ &lt;KKM</span>':''}</td><td><b class="jb">${r.B.length}</b><small>${r.p}%</small></td><td class="nm2"><div class="ncs">${ch(r.B,'g')}</div></td><td><b class="js">${r.W.length}</b><small>${r.q}%</small></td><td class="nm2"><div class="ncs">${ch(r.W,'r')}</div></td></tr>`).join('')}</tbody></table></div>${skip?`<p class="sub" style="font-size:12px;margin:8px 0 0">${skip} hasil lama tanpa rincian soal tidak ikut dianalisis. Soal tanpa jawaban dihitung salah.</p>`:''}`}
-async function anSave(name,data){const dl=await (window.claude?.use('downloads')??null);if(!dl)return toast('Unduhan tidak tersedia di sini, buka aplikasi di browser biasa');try{await dl.save({filename:name,data});toast('File siap disimpan')}catch(e){if(e.code!=='declined')toast('Gagal menyimpan file')}}
+async function anSave(name,data){let dl=null;try{dl=await (window.claude?.use?.('downloads')??null)}catch(e){}
+if(dl){try{await dl.save({filename:name,data});return toast('File siap disimpan')}catch(e){if(e.code==='declined')return}}
+try{const t=name.endsWith('.pdf')?'application/pdf':'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',u=URL.createObjectURL(new Blob([data],{type:t})),a=document.createElement('a');a.href=u;a.download=name;a.rel='noopener';document.body.append(a);a.click();setTimeout(()=>{a.remove();URL.revokeObjectURL(u)},4000);toast('Mengunduh '+name)}catch(e){toast('Gagal mengunduh file')}}
 async function anXls(){const{m,hs}=rmData(),{rows}=anRows(m,hs);if(!rows.length)return toast('Belum ada data');try{await loadXLSX()}catch(e){return toast('Pustaka Excel gagal dimuat')}
 const A=[['Paket','No','Jenis soal','Jml benar','% benar','Kategori','Nama siswa (benar)','Jml salah','% salah','Nama siswa (salah)']].concat(rows.map(r=>['P'+r.pk,r.no,r.jenis,r.B.length,r.p,r.lv+(r.p<kbmOf()?' (<KKM)':''),r.B.join(', '),r.W.length,r.q,r.W.join(', ')])),ws=XLSX.utils.aoa_to_sheet(A);ws['!cols']=[8,6,16,10,9,16,60,10,9,60].map(w=>({wch:w}));const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Analisis Butir Soal');
 anSave('Analisis-Butir-Soal-'+m.nama.replace(/[^\w-]+/g,'_')+'.xlsx',XLSX.write(wb,{type:'array',bookType:'xlsx'}))}
